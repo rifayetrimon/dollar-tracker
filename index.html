@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Dollar Tracker</title>
+<style>
+:root {
+  --bg:       #0f172a;
+  --surface:  #1e293b;
+  --surface2: #263348;
+  --border:   #334155;
+  --accent:   #3b82f6;
+  --accent-d: #2563eb;
+  --text:     #f1f5f9;
+  --muted:    #94a3b8;
+  --success:  #22c55e;
+  --danger:   #ef4444;
+  --radius:   12px;
+  --sw:       220px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; font-size: 15px; background: var(--bg); color: var(--text); line-height: 1.5; }
+
+/* ── Layout ── */
+#app { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: var(--sw); background: var(--surface); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0;
+  z-index: 100; padding: 24px 0; overflow-y: auto;
+}
+.sb-brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 20px 24px; border-bottom: 1px solid var(--border); margin-bottom: 16px;
+}
+.sb-logo {
+  width: 36px; height: 36px; border-radius: 10px; background: rgba(59,130,246,.15);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 800; color: var(--accent); flex-shrink: 0;
+}
+.sb-name { font-weight: 700; font-size: 15px; }
+.sb-sub  { font-size: 11px; color: var(--muted); }
+.sb-nav  { display: flex; flex-direction: column; gap: 2px; padding: 0 10px; }
+
+.nav-link {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  border-radius: 8px; color: var(--muted); font-size: 14px; font-weight: 500;
+  cursor: pointer; border: none; background: none; width: 100%; text-align: left;
+  transition: all .15s;
+}
+.nav-link:hover { background: var(--surface2); color: var(--text); }
+.nav-link.active { background: var(--accent); color: #fff; }
+
+#main { flex: 1; margin-left: var(--sw); min-height: 100vh; }
+.page { display: none; }
+.page.active { display: block; }
+.pg { max-width: 920px; margin: 0 auto; padding: 28px 24px 90px; }
+
+/* ── Page header ── */
+.pg-hdr { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
+.pg-title { font-size: 22px; font-weight: 700; letter-spacing: -.5px; }
+.pg-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+/* ── Stats grid ── */
+.stats-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 14px; margin-bottom: 24px; }
+@media(min-width:600px) { .stats-grid { grid-template-columns: repeat(4,1fr); } }
+
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 16px; }
+.stat-label { font-size: 11px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.stat-value { font-size: 24px; font-weight: 700; letter-spacing: -.5px; }
+
+/* ── Charts ── */
+.charts-row { display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 20px; }
+@media(min-width:640px) { .charts-row { grid-template-columns: 1fr 1fr; } }
+.chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+.chart-title { font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+.chart-empty { color: var(--muted); font-size: 13px; text-align: center; padding: 28px 0; }
+
+/* ── Tx cards ── */
+.tx-list { display: flex; flex-direction: column; gap: 10px; }
+.tx-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 15px 16px; display: flex; align-items: flex-start; gap: 13px; transition: border-color .15s;
+}
+.tx-card:hover { border-color: rgba(59,130,246,.5); }
+.tx-icon {
+  width: 40px; height: 40px; border-radius: 10px; background: rgba(59,130,246,.1);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--accent);
+}
+.tx-body { flex: 1; min-width: 0; }
+.tx-head { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tx-badge { font-size: 11px; font-weight: 600; background: rgba(59,130,246,.12); color: var(--accent); border-radius: 5px; padding: 2px 7px; }
+.tx-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.tx-note { font-size: 12px; color: var(--muted); font-style: italic; margin-top: 1px; }
+.tx-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+.tx-usd { font-size: 16px; font-weight: 700; color: var(--success); }
+.tx-bdt { font-size: 12px; color: var(--muted); }
+
+/* ── Period bar ── */
+.period-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+.period-tabs { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 3px; gap: 2px; }
+.ptab { padding: 6px 14px; border-radius: 7px; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; border: none; background: none; transition: all .15s; font-family: inherit; }
+.ptab:hover:not(.active) { color: var(--text); }
+.ptab.active { background: var(--accent); color: #fff; }
+
+.period-nav { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.period-lbl { font-size: 13px; font-weight: 600; min-width: 110px; text-align: center; }
+.btn-nav {
+  width: 30px; height: 30px; border-radius: 7px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all .15s;
+}
+.btn-nav:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.btn-nav:disabled { opacity: .3; cursor: not-allowed; }
+
+/* ── Section header ── */
+.sec-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.sec-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }
+
+/* ── Empty / loading ── */
+.empty { text-align: center; padding: 48px 20px; color: var(--muted); }
+.empty-icon { font-size: 36px; margin-bottom: 12px; }
+.empty-text { font-size: 15px; font-weight: 600; margin-bottom: 4px; color: var(--text); }
+.empty-sub  { font-size: 13px; }
+.loading { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 48px 20px; color: var(--muted); font-size: 14px; }
+
+/* ── Form ── */
+.form-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; max-width: 540px; }
+.form-row  { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.fg { margin-bottom: 16px; }
+.flabel { display: block; font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; }
+.finput {
+  width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); font-size: 14px; padding: 10px 12px; outline: none;
+  transition: border-color .15s; font-family: inherit;
+}
+.finput:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,.1); }
+.fhint { font-size: 11px; color: var(--muted); margin-top: 5px; }
+.rate-box {
+  font-size: 20px; font-weight: 700; color: var(--accent);
+  padding: 10px 12px; background: rgba(59,130,246,.07);
+  border: 1px solid rgba(59,130,246,.2); border-radius: 8px; text-align: center;
+}
+
+/* ── Buttons ── */
+.btn { display: inline-flex; align-items: center; gap: 7px; padding: 10px 20px; border-radius: 9px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; font-family: inherit; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-d); }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+.btn-ghost  { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+.btn-sm { padding: 7px 14px; font-size: 13px; }
+.btn-icon-sq {
+  width: 36px; height: 36px; padding: 0; border-radius: 9px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all .15s;
+}
+.btn-icon-sq:hover { border-color: var(--accent); color: var(--accent); }
+.btn-del {
+  background: none; border: 1px solid var(--border); border-radius: 7px;
+  color: var(--muted); padding: 4px 10px; font-size: 12px; cursor: pointer;
+  transition: all .15s; font-family: inherit;
+}
+.btn-del:hover { border-color: var(--danger); color: var(--danger); background: rgba(239,68,68,.06); }
+
+/* ── Toast ── */
+.toast {
+  position: fixed; bottom: 76px; left: 50%; transform: translateX(-50%) translateY(16px);
+  background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+  padding: 11px 20px; border-radius: 10px; font-size: 14px; font-weight: 500;
+  box-shadow: 0 4px 24px rgba(0,0,0,.4); opacity: 0; pointer-events: none;
+  transition: all .25s; white-space: nowrap; z-index: 999;
+}
+.toast.show  { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.error   { border-color: var(--danger);  background: rgba(239,68,68,.1);  color: #fca5a5; }
+.toast.success { border-color: var(--success); background: rgba(34,197,94,.08); color: #86efac; }
+
+/* ── Settings ── */
+.set-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 16px; }
+.set-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.set-desc  { font-size: 13px; color: var(--muted); margin-bottom: 20px; line-height: 1.65; }
+.setup-steps { color: var(--muted); font-size: 13px; padding-left: 18px; line-height: 2.2; }
+.setup-steps strong { color: var(--text); }
+
+/* ── Spinner ── */
+.spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Bottom nav ── */
+.bnav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border); z-index: 100; height: 62px; }
+.bnav-inner { display: flex; height: 100%; }
+.bnav-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; color: var(--muted); font-size: 11px; font-weight: 500;
+  cursor: pointer; border: none; background: none; transition: color .15s;
+}
+.bnav-item.active { color: var(--accent); }
+
+/* ── Mini summary row ── */
+.mini-stats { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.mini-stat { flex: 1; min-width: 120px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+.mini-stat .stat-value { font-size: 18px; }
+
+/* ── Responsive ── */
+@media(max-width:767px) {
+  .sidebar { display: none; }
+  #main { margin-left: 0; }
+  .bnav { display: block; }
+  .pg { padding: 18px 14px 74px; }
+  .form-row { grid-template-columns: 1fr; }
+  .toast { bottom: 70px; }
+}
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ── Sidebar ─────────────────────────────────────────────────────────────── -->
+<nav class="sidebar">
+  <div class="sb-brand">
+    <div class="sb-logo">$</div>
+    <div>
+      <div class="sb-name">Dollar Tracker</div>
+      <div class="sb-sub">City Bank · BDT→USD</div>
+    </div>
+  </div>
+  <div class="sb-nav">
+    <button class="nav-link active" data-page="dashboard" onclick="showPage('dashboard')">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Dashboard
+    </button>
+    <button class="nav-link" data-page="transactions" onclick="showPage('transactions')">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      Transactions
+    </button>
+    <button class="nav-link" data-page="add" onclick="showPage('add')">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Add Transaction
+    </button>
+    <button class="nav-link" data-page="settings" onclick="showPage('settings')">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Settings
+    </button>
+  </div>
+</nav>
+
+<!-- ── Pages ─────────────────────────────────────────────────────────────────── -->
+<main id="main">
+
+  <!-- DASHBOARD -->
+  <section id="page-dashboard" class="page active">
+    <div class="pg">
+      <div class="pg-hdr">
+        <div>
+          <div class="pg-title">Dashboard</div>
+          <div class="pg-sub" id="dash-updated">—</div>
+        </div>
+        <button class="btn-icon-sq" onclick="doRefresh()" title="Refresh data">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        </button>
+      </div>
+      <div id="dash-body"></div>
+    </div>
+  </section>
+
+  <!-- TRANSACTIONS -->
+  <section id="page-transactions" class="page">
+    <div class="pg">
+      <div class="pg-hdr">
+        <div class="pg-title">Transactions</div>
+      </div>
+      <div id="tx-body"></div>
+    </div>
+  </section>
+
+  <!-- ADD -->
+  <section id="page-add" class="page">
+    <div class="pg">
+      <div class="pg-hdr">
+        <div>
+          <div class="pg-title">Add Transaction</div>
+          <div class="pg-sub">Record a new dollar purchase</div>
+        </div>
+      </div>
+      <div class="form-wrap">
+        <div class="form-row">
+          <div class="fg">
+            <label class="flabel" for="f-date">Date</label>
+            <input class="finput" type="date" id="f-date">
+          </div>
+          <div class="fg">
+            <label class="flabel" for="f-time">Time</label>
+            <input class="finput" type="time" id="f-time">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="fg">
+            <label class="flabel" for="f-bdt">BDT Deducted (৳)</label>
+            <input class="finput" type="number" id="f-bdt" placeholder="e.g. 11200" min="0" oninput="calcRate()">
+            <div class="fhint">Total amount taken from your account</div>
+          </div>
+          <div class="fg">
+            <label class="flabel" for="f-usd">Dollar Amount ($)</label>
+            <input class="finput" type="number" id="f-usd" placeholder="e.g. 100" min="0" step="0.01" oninput="calcRate()">
+            <div class="fhint">USD amount you received</div>
+          </div>
+        </div>
+        <div class="fg">
+          <label class="flabel">Exchange Rate</label>
+          <div class="rate-box" id="rate-display">৳&thinsp;— &nbsp;per $1</div>
+          <div class="fhint">Auto-calculated from BDT ÷ USD</div>
+        </div>
+        <div class="fg">
+          <label class="flabel" for="f-note">Note (optional)</label>
+          <input class="finput" type="text" id="f-note" placeholder="e.g. Wise transfer, freelance payment…">
+        </div>
+        <button class="btn btn-primary" id="btn-add" onclick="submitAdd()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Transaction
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="page-settings" class="page">
+    <div class="pg">
+      <div class="pg-hdr"><div class="pg-title">Settings</div></div>
+
+      <div class="set-card">
+        <div class="set-title">Apps Script Web App URL</div>
+        <div class="set-desc">Paste your deployed Google Apps Script URL here. All data is stored in your Google Sheet.</div>
+        <div class="fg">
+          <label class="flabel" for="s-url">Web App URL</label>
+          <input class="finput" type="url" id="s-url" placeholder="https://script.google.com/macros/s/…/exec">
+        </div>
+        <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+      </div>
+
+      <div class="set-card">
+        <div class="set-title">Backend Setup Guide</div>
+        <div class="set-desc">Use the <strong>Code.gs</strong> file from the same folder as this HTML app.</div>
+        <ol class="setup-steps">
+          <li>Open Google Sheets → <strong>Extensions → Apps Script</strong></li>
+          <li>Replace Code.gs with the provided backend file</li>
+          <li>Click <strong>Deploy → New Deployment → Web App</strong></li>
+          <li>Execute as: <strong>Me</strong> &nbsp;|&nbsp; Who has access: <strong>Anyone</strong></li>
+          <li>Authorize → copy the Web App URL → paste above</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+</main>
+</div>
+
+<!-- ── Bottom nav (mobile) ───────────────────────────────────────────────────── -->
+<nav class="bnav">
+  <div class="bnav-inner">
+    <button class="bnav-item active" data-page="dashboard" onclick="showPage('dashboard')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Home
+    </button>
+    <button class="bnav-item" data-page="transactions" onclick="showPage('transactions')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      List
+    </button>
+    <button class="bnav-item" data-page="add" onclick="showPage('add')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Add
+    </button>
+    <button class="bnav-item" data-page="settings" onclick="showPage('settings')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Settings
+    </button>
+  </div>
+</nav>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────────
+const CFG_KEY = 'dt_script_url';
+const DEFAULT_URL = 'https://script.google.com/macros/s/AKfycby3wbdM2rUGBTfyDdF5DNLE-jrCX27yFWiSsoD2NkDvfY63zbbK9G-TAfxCbdO_ePqa/exec';
+let CONFIG    = { SCRIPT_URL: localStorage.getItem(CFG_KEY) || DEFAULT_URL };
+const $       = id => document.getElementById(id);
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let txs      = [];
+let txPeriod = 'all';
+let txOffset = 0;
+
+// ── Script helpers (SSC pattern — no Content-Type, avoids CORS preflight) ─────
+async function scriptPost(payload) {
+  const res = await fetch(CONFIG.SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+  return res.json();
+}
+async function scriptGet(params) {
+  const qs  = new URLSearchParams({ ...params, t: Date.now() }).toString();
+  const res = await fetch(CONFIG.SCRIPT_URL + '?' + qs);
+  return res.json();
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+let _toastTimer;
+function showToast(icon, msg, type) {
+  const el = $('toast');
+  el.textContent = icon + '  ' + msg;
+  el.className   = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { el.className = 'toast'; }, 3200);
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-link, .bnav-item').forEach(l => l.classList.remove('active'));
+  document.querySelectorAll('[data-page="' + name + '"]').forEach(l => l.classList.add('active'));
+  $('page-' + name).classList.add('active');
+
+  if (name === 'dashboard')    renderDashboard();
+  if (name === 'transactions') renderTransactions();
+  if (name === 'add')          initAddForm();
+  if (name === 'settings')     initSettings();
+}
+
+// ── Data loading ──────────────────────────────────────────────────────────────
+async function loadTxs(silent) {
+  if (!CONFIG.SCRIPT_URL) {
+    if (!silent) showToast('⚙️', 'Set your Apps Script URL in Settings first', 'error');
+    return false;
+  }
+  try {
+    const r = await scriptGet({});
+    if (r.ok) {
+      txs = (r.data || []).map(norm);
+      return true;
+    }
+    if (!silent) showToast('⚠️', r.error || 'Failed to load data', 'error');
+    return false;
+  } catch (e) {
+    if (!silent) showToast('⚠️', 'Network error — check your URL in Settings', 'error');
+    return false;
+  }
+}
+
+function norm(tx) {
+  return {
+    ...tx,
+    bankAmount:   Number(tx.bankAmount)   || 0,
+    dollarAmount: Number(tx.dollarAmount) || 0,
+    exchangeRate: Number(tx.exchangeRate) || 0,
+  };
+}
+
+async function doRefresh() {
+  if (!CONFIG.SCRIPT_URL) return showToast('⚙️', 'Set your Apps Script URL in Settings first', 'error');
+  $('dash-body').innerHTML = loadingHTML();
+  const ok = await loadTxs(true);
+  renderDashboard();
+  if (ok) showToast('✅', 'Data refreshed', 'success');
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+function renderDashboard() {
+  const el = $('dash-body');
+
+  if (!CONFIG.SCRIPT_URL) {
+    el.innerHTML = emptyHTML('⚙️', 'No backend connected', 'Go to Settings and paste your Apps Script URL to get started.');
+    return;
+  }
+  if (!txs.length) {
+    el.innerHTML = emptyHTML('💵', 'No transactions yet', 'Add your first dollar purchase to see your dashboard.');
+    return;
+  }
+
+  const totalUsd   = txs.reduce((s, t) => s + t.dollarAmount, 0);
+  const totalBdt   = txs.reduce((s, t) => s + t.bankAmount,   0);
+  const avgRate    = totalUsd ? totalBdt / totalUsd : 0;
+  const latestRate = txs[0] ? txs[0].exchangeRate : 0;
+
+  // Rate trend: last 10 in chronological order
+  const rateData = txs.slice().reverse().slice(-10).map(tx => ({
+    x: fmtDate(tx.date, 'short'),
+    y: tx.exchangeRate
+  }));
+
+  // Monthly BDT for last 6 months
+  const monthlyData = buildMonthly(6);
+
+  const now = new Date();
+  $('dash-updated').textContent = 'Updated ' + now.toLocaleTimeString('en-BD', { hour: '2-digit', minute: '2-digit' });
+
+  el.innerHTML =
+    '<div class="stats-grid">' +
+      statCard('Transactions', txs.length, '') +
+      statCard('Total Bought', '$' + fmt(totalUsd, 2), '') +
+      statCard('Total Spent',  '৳' + fmt(totalBdt, 0), '') +
+      statCard('Latest Rate',  '৳' + fmt(latestRate, 2), '') +
+    '</div>' +
+    '<div class="charts-row">' +
+      '<div class="chart-card"><div class="chart-title">Rate Trend</div>' + lineChart(rateData) + '</div>' +
+      '<div class="chart-card"><div class="chart-title">Monthly Spend (৳)</div>' + barChart(monthlyData) + '</div>' +
+    '</div>' +
+    '<div class="sec-hdr">' +
+      '<span class="sec-title">Recent Transactions</span>' +
+      '<button class="btn btn-ghost btn-sm" onclick="showPage(\'transactions\')">View All</button>' +
+    '</div>' +
+    '<div class="tx-list">' + txs.slice(0, 5).map(txCardHTML).join('') + '</div>';
+}
+
+function statCard(label, value) {
+  return '<div class="stat-card"><div class="stat-label">' + label + '</div><div class="stat-value">' + value + '</div></div>';
+}
+
+function buildMonthly(n) {
+  const now    = new Date();
+  const result = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const d     = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const label = d.toLocaleDateString('en-BD', { month: 'short' });
+    const total = txs
+      .filter(tx => {
+        const td = new Date(tx.date);
+        return td.getFullYear() === d.getFullYear() && td.getMonth() === d.getMonth();
+      })
+      .reduce((s, t) => s + t.bankAmount, 0);
+    result.push({ x: label, y: total });
+  }
+  return result;
+}
+
+// ── Transactions page ─────────────────────────────────────────────────────────
+function renderTransactions() {
+  $('tx-body').innerHTML = buildTxPage();
+}
+
+function buildTxPage() {
+  const filtered = filteredTxs();
+  const range    = periodRange();
+  const label    = range ? range.label : 'All Time';
+
+  const tabs = ['all','daily','weekly','monthly'].map(p =>
+    '<button class="ptab' + (txPeriod === p ? ' active' : '') + '" onclick="setPeriod(\'' + p + '\')">' +
+    p.charAt(0).toUpperCase() + p.slice(1) + '</button>'
+  ).join('');
+
+  const nav = txPeriod !== 'all'
+    ? '<div class="period-nav">' +
+        '<button class="btn-nav" onclick="navPeriod(-1)">' + chevronL() + '</button>' +
+        '<span class="period-lbl">' + label + '</span>' +
+        '<button class="btn-nav" onclick="navPeriod(1)"' + (txOffset >= 0 ? ' disabled' : '') + '>' + chevronR() + '</button>' +
+      '</div>'
+    : '';
+
+  let summary = '';
+  if (filtered.length) {
+    const tu = filtered.reduce((s, t) => s + t.dollarAmount, 0);
+    const tb = filtered.reduce((s, t) => s + t.bankAmount,   0);
+    summary =
+      '<div class="mini-stats">' +
+        '<div class="mini-stat"><div class="stat-label">Transactions</div><div class="stat-value">' + filtered.length + '</div></div>' +
+        '<div class="mini-stat"><div class="stat-label">Total $</div><div class="stat-value">$' + fmt(tu, 2) + '</div></div>' +
+        '<div class="mini-stat"><div class="stat-label">Total ৳</div><div class="stat-value">৳' + fmt(tb, 0) + '</div></div>' +
+      '</div>';
+  }
+
+  const list = filtered.length
+    ? '<div class="tx-list">' + filtered.map(txCardHTML).join('') + '</div>'
+    : emptyHTML('🔍', 'No transactions', 'No records found for this period.');
+
+  return '<div class="period-bar"><div class="period-tabs">' + tabs + '</div>' + nav + '</div>' + summary + list;
+}
+
+function setPeriod(p) {
+  txPeriod = p;
+  txOffset = 0;
+  renderTransactions();
+}
+
+function navPeriod(dir) {
+  txOffset = Math.min(0, txOffset + dir);
+  renderTransactions();
+}
+
+function periodRange() {
+  if (txPeriod === 'all') return null;
+  const now = new Date();
+
+  if (txPeriod === 'daily') {
+    const d = new Date(now);
+    d.setDate(d.getDate() + txOffset);
+    const start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const end   = new Date(start); end.setDate(end.getDate() + 1);
+    return { start, end, label: txOffset === 0 ? 'Today' : d.toLocaleDateString('en-BD', { month:'short', day:'numeric' }) };
+  }
+
+  if (txPeriod === 'weekly') {
+    const d   = new Date(now);
+    d.setDate(d.getDate() + txOffset * 7);
+    const dow = d.getDay();
+    const mon = new Date(d); mon.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
+    const sun = new Date(mon); sun.setDate(mon.getDate() + 7);
+    const edis = new Date(sun.getTime() - 1);
+    const lbl  = txOffset === 0 ? 'This Week'
+      : mon.toLocaleDateString('en-BD', { month:'short', day:'numeric' }) + ' – ' +
+        edis.toLocaleDateString('en-BD', { month:'short', day:'numeric' });
+    return { start: mon, end: sun, label: lbl };
+  }
+
+  if (txPeriod === 'monthly') {
+    const d     = new Date(now.getFullYear(), now.getMonth() + txOffset, 1);
+    const start = new Date(d.getFullYear(), d.getMonth(), 1);
+    const end   = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+    const lbl   = txOffset === 0 ? 'This Month'
+      : d.toLocaleDateString('en-BD', { month:'long', year:'numeric' });
+    return { start, end, label: lbl };
+  }
+}
+
+function filteredTxs() {
+  if (txPeriod === 'all') return txs;
+  const r = periodRange();
+  if (!r) return txs;
+  return txs.filter(tx => {
+    const d = new Date(tx.date);
+    return d >= r.start && d < r.end;
+  });
+}
+
+// ── Tx card HTML ──────────────────────────────────────────────────────────────
+function txCardHTML(tx) {
+  const rateStr = tx.exchangeRate ? '৳' + fmt(tx.exchangeRate, 2) + ' per $' : '';
+  return '<div class="tx-card">' +
+    '<div class="tx-icon">' + dollarSVG() + '</div>' +
+    '<div class="tx-body">' +
+      '<div class="tx-head">$' + fmt(tx.dollarAmount, 2) +
+        (rateStr ? '<span class="tx-badge">' + rateStr + '</span>' : '') +
+      '</div>' +
+      '<div class="tx-meta">' + fmtDate(tx.date, 'full') + (tx.time ? ' · ' + tx.time : '') + '</div>' +
+      (tx.note ? '<div class="tx-note">' + esc(tx.note) + '</div>' : '') +
+    '</div>' +
+    '<div class="tx-right">' +
+      '<div class="tx-usd">$' + fmt(tx.dollarAmount, 2) + '</div>' +
+      '<div class="tx-bdt">৳' + fmt(tx.bankAmount, 0) + '</div>' +
+      '<button class="btn-del" onclick="confirmDel(\'' + tx.id + '\')">Delete</button>' +
+    '</div>' +
+  '</div>';
+}
+
+async function confirmDel(id) {
+  if (!confirm('Delete this transaction? This cannot be undone.')) return;
+  await deleteTx(id);
+}
+
+async function deleteTx(id) {
+  if (!CONFIG.SCRIPT_URL) return;
+  try {
+    const r = await scriptPost({ action: 'delete', id: id });
+    if (r.ok) {
+      txs = txs.filter(t => String(t.id) !== String(id));
+      showToast('🗑️', 'Transaction deleted', 'success');
+      renderTransactions();
+      renderDashboard();
+    } else {
+      showToast('⚠️', r.error || 'Delete failed', 'error');
+    }
+  } catch (e) {
+    showToast('⚠️', 'Network error', 'error');
+  }
+}
+
+// ── Add form ──────────────────────────────────────────────────────────────────
+function initAddForm() {
+  const now  = new Date();
+  $('f-date').value = now.toISOString().slice(0, 10);
+  $('f-time').value = now.toTimeString().slice(0, 5);
+  $('f-bdt').value  = '';
+  $('f-usd').value  = '';
+  $('f-note').value = '';
+  $('rate-display').innerHTML = '৳&thinsp;— &nbsp;per $1';
+}
+
+function calcRate() {
+  const bdt = parseFloat($('f-bdt').value) || 0;
+  const usd = parseFloat($('f-usd').value) || 0;
+  $('rate-display').textContent = (bdt > 0 && usd > 0)
+    ? '৳' + (bdt / usd).toFixed(2) + ' per $1'
+    : '৳ —  per $1';
+}
+
+async function submitAdd() {
+  const date = $('f-date').value.trim();
+  const time = $('f-time').value.trim();
+  const bdt  = parseFloat($('f-bdt').value) || 0;
+  const usd  = parseFloat($('f-usd').value) || 0;
+  const note = $('f-note').value.trim();
+
+  if (!date)       return showToast('⚠️', 'Please select a date', 'error');
+  if (bdt <= 0)    return showToast('⚠️', 'Enter the BDT amount deducted', 'error');
+  if (usd <= 0)    return showToast('⚠️', 'Enter the USD amount received', 'error');
+  if (!CONFIG.SCRIPT_URL) return showToast('⚙️', 'Set your Apps Script URL in Settings first', 'error');
+
+  const tx = {
+    id:           Date.now().toString(36) + Math.random().toString(36).slice(2),
+    date, time,
+    bankAmount:   bdt,
+    dollarAmount: usd,
+    exchangeRate: bdt / usd,
+    note:         note,
+    createdAt:    new Date().toISOString()
+  };
+
+  const btn = $('btn-add');
+  btn.disabled    = true;
+  btn.textContent = 'Saving…';
+
+  try {
+    const r = await scriptPost({ action: 'add', data: tx });
+    if (r.ok) {
+      txs.unshift(norm(r.data || tx));
+      showToast('✅', 'Transaction saved!', 'success');
+      showPage('dashboard');
+    } else {
+      showToast('⚠️', r.error || 'Save failed', 'error');
+    }
+  } catch (e) {
+    showToast('⚠️', 'Network error — check your URL', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Transaction';
+  }
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+function initSettings() {
+  $('s-url').value = CONFIG.SCRIPT_URL;
+}
+
+function saveSettings() {
+  const url = $('s-url').value.trim();
+  if (url && !url.startsWith('https://script.google.com')) {
+    return showToast('⚠️', 'URL must start with script.google.com', 'error');
+  }
+  CONFIG.SCRIPT_URL = url;
+  localStorage.setItem(CFG_KEY, url);
+  showToast('✅', 'Settings saved!', 'success');
+  if (url) {
+    txs = [];
+    loadTxs(true).then(() => renderDashboard());
+  }
+}
+
+// ── SVG Charts ────────────────────────────────────────────────────────────────
+function lineChart(data) {
+  if (!data || data.length < 2) return '<p class="chart-empty">Add at least 2 transactions to see the trend.</p>';
+
+  const W = 480, H = 170;
+  const pad = { t: 18, r: 14, b: 30, l: 50 };
+  const cW  = W - pad.l - pad.r;
+  const cH  = H - pad.t - pad.b;
+
+  const vals = data.map(d => d.y);
+  const minY = Math.min.apply(null, vals);
+  const maxY = Math.max.apply(null, vals);
+  const rng  = maxY - minY || 1;
+
+  function px(i) { return pad.l + (i / (data.length - 1)) * cW; }
+  function py(v) { return pad.t + (1 - (v - minY) / rng) * cH; }
+
+  const pts  = data.map(function(d, i) { return px(i) + ',' + py(d.y); }).join(' ');
+  let   area = 'M' + px(0) + ',' + py(data[0].y);
+  for (var i = 1; i < data.length; i++) area += ' L' + px(i) + ',' + py(data[i].y);
+  area += ' L' + px(data.length - 1) + ',' + (pad.t + cH) + ' L' + px(0) + ',' + (pad.t + cH) + ' Z';
+
+  var grids = '';
+  [0, 0.5, 1].forEach(function(t) {
+    var v = minY + t * rng, y = py(v);
+    grids += '<line x1="' + pad.l + '" y1="' + y + '" x2="' + (pad.l + cW) + '" y2="' + y + '" stroke="rgba(255,255,255,.07)" stroke-dasharray="3 4"/>';
+    grids += '<text x="' + (pad.l - 5) + '" y="' + (y + 4) + '" text-anchor="end" fill="#94a3b8" font-size="10">' + v.toFixed(0) + '</text>';
+  });
+
+  var step = Math.max(1, Math.ceil(data.length / 5));
+  var xlabels = '';
+  for (var j = 0; j < data.length; j++) {
+    if (j % step === 0 || j === data.length - 1)
+      xlabels += '<text x="' + px(j) + '" y="' + (H - 4) + '" text-anchor="middle" fill="#94a3b8" font-size="10">' + data[j].x + '</text>';
+  }
+
+  var dots = '';
+  for (var k = 0; k < data.length; k++)
+    dots += '<circle cx="' + px(k) + '" cy="' + py(data[k].y) + '" r="3.5" fill="#3b82f6" stroke="#1e293b" stroke-width="2"/>';
+
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block;overflow:visible">' +
+    '<defs><linearGradient id="lg1" x1="0" y1="0" x2="0" y2="1">' +
+    '<stop offset="0%" stop-color="#3b82f6" stop-opacity=".2"/>' +
+    '<stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>' +
+    '</linearGradient></defs>' +
+    grids +
+    '<path d="' + area + '" fill="url(#lg1)"/>' +
+    '<polyline points="' + pts + '" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' +
+    dots + xlabels + '</svg>';
+}
+
+function barChart(data) {
+  if (!data || !data.some(function(d) { return d.y > 0; }))
+    return '<p class="chart-empty">No spending data yet.</p>';
+
+  const W = 480, H = 170;
+  const pad = { t: 18, r: 14, b: 30, l: 50 };
+  const cW  = W - pad.l - pad.r;
+  const cH  = H - pad.t - pad.b;
+
+  var maxY = 1;
+  data.forEach(function(d) { if (d.y > maxY) maxY = d.y; });
+
+  var slot = cW / data.length;
+  var barW = slot * 0.55;
+
+  function bx(i) { return pad.l + slot * i + slot / 2 - barW / 2; }
+  function bh(v) { return (v / maxY) * cH; }
+  function by(v) { return pad.t + cH - bh(v); }
+
+  var grids = '';
+  [0, 0.5, 1].forEach(function(t) {
+    var v = t * maxY, y = pad.t + (1 - t) * cH;
+    grids += '<line x1="' + pad.l + '" y1="' + y + '" x2="' + (pad.l + cW) + '" y2="' + y + '" stroke="rgba(255,255,255,.07)" stroke-dasharray="3 4"/>';
+    var lbl = v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v.toFixed(0);
+    grids += '<text x="' + (pad.l - 5) + '" y="' + (y + 4) + '" text-anchor="end" fill="#94a3b8" font-size="10">' + lbl + '</text>';
+  });
+
+  var bars = '', xlabels = '';
+  for (var i = 0; i < data.length; i++) {
+    var h   = Math.max(bh(data[i].y), data[i].y > 0 ? 2 : 0);
+    var op  = data[i].y > 0 ? '.85' : '.15';
+    bars    += '<rect x="' + bx(i) + '" y="' + by(data[i].y) + '" width="' + barW + '" height="' + h + '" rx="4" fill="#3b82f6" opacity="' + op + '"/>';
+    xlabels += '<text x="' + (bx(i) + barW / 2) + '" y="' + (H - 4) + '" text-anchor="middle" fill="#94a3b8" font-size="10">' + data[i].x + '</text>';
+  }
+
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="display:block;overflow:visible">' +
+    grids + bars + xlabels + '</svg>';
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function fmt(n, dec) {
+  return Number(n).toLocaleString('en-BD', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
+
+function fmtDate(s, style) {
+  if (!s) return '—';
+  try {
+    var d = new Date(s + 'T00:00:00');
+    if (style === 'short') return d.toLocaleDateString('en-BD', { month: 'short', day: 'numeric' });
+    return d.toLocaleDateString('en-BD', { year: 'numeric', month: 'short', day: 'numeric' });
+  } catch (e) { return s; }
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function emptyHTML(icon, title, sub) {
+  return '<div class="empty"><div class="empty-icon">' + icon + '</div><div class="empty-text">' + title + '</div><div class="empty-sub">' + sub + '</div></div>';
+}
+
+function loadingHTML() {
+  return '<div class="loading"><div class="spinner"></div> Loading your data…</div>';
+}
+
+function dollarSVG() {
+  return '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>';
+}
+
+function chevronL() {
+  return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+}
+
+function chevronR() {
+  return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+(async function init() {
+  showPage('dashboard');
+  if (CONFIG.SCRIPT_URL) {
+    $('dash-body').innerHTML = loadingHTML();
+    await loadTxs(true);
+    renderDashboard();
+  }
+})();
+</script>
+</body>
+</html>
