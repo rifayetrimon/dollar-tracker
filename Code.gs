@@ -42,13 +42,27 @@ function doGet(e) {
     if (action === 'getAll') {
       var values = sheet.getDataRange().getValues();
       if (values.length <= 1) return respond({ ok: true, data: [] });
+      var tz = Session.getScriptTimeZone();
       var rows = values.slice(1).map(function(row) {
         var obj = {};
-        HEADERS.forEach(function(h, i) { obj[h] = row[i]; });
+        HEADERS.forEach(function(h, i) {
+          var v = row[i];
+          if (v instanceof Date) {
+            // date column → YYYY-MM-DD, everything else → ISO string
+            obj[h] = (h === 'date')
+              ? Utilities.formatDate(v, tz, 'yyyy-MM-dd')
+              : v.toISOString();
+          } else {
+            obj[h] = (v === null || v === undefined) ? '' : v;
+          }
+        });
         return obj;
-      }).sort(function(a, b) {
-        return new Date(b.createdAt) - new Date(a.createdAt);
-      });
+      }).filter(function(r) { return r.id; })
+        .sort(function(a, b) {
+          var da = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          var db = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return db - da;
+        });
       return respond({ ok: true, data: rows });
     }
 
