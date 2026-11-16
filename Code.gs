@@ -11,7 +11,7 @@
 
 var SHEET_NAME = 'Transactions';
 
-var HEADERS = ['id', 'date', 'time', 'bankAmount', 'dollarAmount', 'exchangeRate', 'note', 'createdAt'];
+var HEADERS = ['id', 'date', 'time', 'bankAmount', 'dollarAmount', 'exchangeRate', 'sellPrice', 'note', 'createdAt'];
 
 function getSheet() {
   var ss    = SpreadsheetApp.getActiveSpreadsheet();

@@ -304,6 +304,11 @@ html, body { height: 100%; font-family: system-ui, -apple-system, 'Segoe UI', sa
           <div class="fhint">Auto-calculated from BDT ÷ USD</div>
         </div>
         <div class="fg">
+          <label class="flabel" for="f-sell">Sell Price (optional) <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">— ৳ per $1</span></label>
+          <input class="finput" type="number" id="f-sell" placeholder="e.g. 132.00" min="0" step="0.01" oninput="calcProfit()">
+          <div class="fhint" id="profit-hint" style="color:var(--success)"></div>
+        </div>
+        <div class="fg">
           <label class="flabel" for="f-note">Note (optional)</label>
           <input class="finput" type="text" id="f-note" placeholder="e.g. Wise transfer, freelance payment…">
         </div>
@@ -409,6 +414,7 @@ function norm(tx) {
     bankAmount:   Number(tx.bankAmount)   || 0,
     dollarAmount: Number(tx.dollarAmount) || 0,
     exchangeRate: Number(tx.exchangeRate) || 0,
+    sellPrice:    Number(tx.sellPrice)    || 0,
   };
 }
 
@@ -590,6 +596,15 @@ function filteredTxs() {
 // ── Tx card HTML ──────────────────────────────────────────────────────────────
 function txCardHTML(tx) {
   const rateStr = tx.exchangeRate ? '৳' + fmt(tx.exchangeRate, 2) + ' per $' : '';
+  const profit  = tx.sellPrice && tx.dollarAmount
+    ? (tx.sellPrice - tx.exchangeRate) * tx.dollarAmount : null;
+  const profitHTML = profit !== null
+    ? '<div class="tx-profit" style="color:' + (profit >= 0 ? 'var(--success)' : 'var(--danger)') + '">' +
+        (profit >= 0 ? '▲' : '▼') + ' ৳' + fmt(Math.abs(profit), 2) + ' profit' +
+      '</div>'
+    : '';
+  const sellHTML = tx.sellPrice
+    ? '<div class="tx-bdt">Sell ৳' + fmt(tx.sellPrice, 2) + '/$</div>' : '';
   return '<div class="tx-card">' +
     '<div class="tx-icon">' + dollarSVG() + '</div>' +
     '<div class="tx-body">' +
@@ -598,10 +613,12 @@ function txCardHTML(tx) {
       '</div>' +
       '<div class="tx-meta">' + fmtDate(tx.date, 'full') + (tx.time ? ' · ' + tx.time : '') + '</div>' +
       (tx.note ? '<div class="tx-note">' + esc(tx.note) + '</div>' : '') +
+      profitHTML +
     '</div>' +
     '<div class="tx-right">' +
       '<div class="tx-usd">$' + fmt(tx.dollarAmount, 2) + '</div>' +
-      '<div class="tx-bdt">৳' + fmt(tx.bankAmount, 0) + '</div>' +
+      '<div class="tx-bdt">Buy ৳' + fmt(tx.bankAmount, 0) + '</div>' +
+      sellHTML +
       '<button class="btn-del" onclick="confirmDel(\'' + tx.id + '\')">Delete</button>' +
     '</div>' +
   '</div>';
@@ -636,8 +653,10 @@ function initAddForm() {
   $('f-time').value = now.toTimeString().slice(0, 5);
   $('f-bdt').value  = '';
   $('f-usd').value  = '';
+  $('f-sell').value = '';
   $('f-note').value = '';
   $('rate-display').innerHTML = '৳&thinsp;— &nbsp;per $1';
+  $('profit-hint').textContent = '';
 }
 
 function calcRate() {
@@ -646,6 +665,24 @@ function calcRate() {
   $('rate-display').textContent = (bdt > 0 && usd > 0)
     ? '৳' + (bdt / usd).toFixed(2) + ' per $1'
     : '৳ —  per $1';
+  calcProfit();
+}
+
+function calcProfit() {
+  const bdt  = parseFloat($('f-bdt').value)  || 0;
+  const usd  = parseFloat($('f-usd').value)  || 0;
+  const sell = parseFloat($('f-sell').value) || 0;
+  const hint = $('profit-hint');
+  if (sell > 0 && usd > 0 && bdt > 0) {
+    const buyRate = bdt / usd;
+    const profit  = (sell - buyRate) * usd;
+    hint.textContent = profit >= 0
+      ? '▲ Profit ৳' + profit.toFixed(2)
+      : '▼ Loss ৳'   + Math.abs(profit).toFixed(2);
+    hint.style.color = profit >= 0 ? 'var(--success)' : 'var(--danger)';
+  } else {
+    hint.textContent = '';
+  }
 }
 
 async function submitAdd() {
@@ -660,12 +697,14 @@ async function submitAdd() {
   if (usd <= 0)    return showToast('⚠️', 'Enter the USD amount received', 'error');
   if (!CONFIG.SCRIPT_URL) return showToast('⚙️', 'Set your Apps Script URL in Settings first', 'error');
 
+  const sell = parseFloat($('f-sell').value) || 0;
   const tx = {
     id:           Date.now().toString(36) + Math.random().toString(36).slice(2),
     date, time,
     bankAmount:   bdt,
     dollarAmount: usd,
     exchangeRate: bdt / usd,
+    sellPrice:    sell || '',
     note:         note,
     createdAt:    new Date().toISOString()
   };
