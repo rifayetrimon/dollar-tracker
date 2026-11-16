@@ -176,13 +176,6 @@ html, body { height: 100%; font-family: system-ui, -apple-system, 'Segoe UI', sa
 .toast.error   { border-color: var(--danger);  background: rgba(239,68,68,.1);  color: #fca5a5; }
 .toast.success { border-color: var(--success); background: rgba(34,197,94,.08); color: #86efac; }
 
-/* ── Settings ── */
-.set-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 16px; }
-.set-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
-.set-desc  { font-size: 13px; color: var(--muted); margin-bottom: 20px; line-height: 1.65; }
-.setup-steps { color: var(--muted); font-size: 13px; padding-left: 18px; line-height: 2.2; }
-.setup-steps strong { color: var(--text); }
-
 /* ── Spinner ── */
 .spinner { width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; display: inline-block; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -240,10 +233,6 @@ html, body { height: 100%; font-family: system-ui, -apple-system, 'Segoe UI', sa
     <button class="nav-link" data-page="add" onclick="showPage('add')">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
       Add Transaction
-    </button>
-    <button class="nav-link" data-page="settings" onclick="showPage('settings')">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      Settings
     </button>
   </div>
 </nav>
@@ -326,35 +315,6 @@ html, body { height: 100%; font-family: system-ui, -apple-system, 'Segoe UI', sa
     </div>
   </section>
 
-  <!-- SETTINGS -->
-  <section id="page-settings" class="page">
-    <div class="pg">
-      <div class="pg-hdr"><div class="pg-title">Settings</div></div>
-
-      <div class="set-card">
-        <div class="set-title">Apps Script Web App URL</div>
-        <div class="set-desc">Paste your deployed Google Apps Script URL here. All data is stored in your Google Sheet.</div>
-        <div class="fg">
-          <label class="flabel" for="s-url">Web App URL</label>
-          <input class="finput" type="url" id="s-url" placeholder="https://script.google.com/macros/s/…/exec">
-        </div>
-        <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
-      </div>
-
-      <div class="set-card">
-        <div class="set-title">Backend Setup Guide</div>
-        <div class="set-desc">Use the <strong>Code.gs</strong> file from the same folder as this HTML app.</div>
-        <ol class="setup-steps">
-          <li>Open Google Sheets → <strong>Extensions → Apps Script</strong></li>
-          <li>Replace Code.gs with the provided backend file</li>
-          <li>Click <strong>Deploy → New Deployment → Web App</strong></li>
-          <li>Execute as: <strong>Me</strong> &nbsp;|&nbsp; Who has access: <strong>Anyone</strong></li>
-          <li>Authorize → copy the Web App URL → paste above</li>
-        </ol>
-      </div>
-    </div>
-  </section>
-
 </main>
 </div>
 
@@ -372,10 +332,6 @@ html, body { height: 100%; font-family: system-ui, -apple-system, 'Segoe UI', sa
     <button class="bnav-item" data-page="add" onclick="showPage('add')">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
       Add
-    </button>
-    <button class="bnav-item" data-page="settings" onclick="showPage('settings')">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      Settings
     </button>
   </div>
 </nav>
@@ -425,7 +381,6 @@ function showPage(name) {
   if (name === 'dashboard')    renderDashboard();
   if (name === 'transactions') renderTransactions();
   if (name === 'add')          initAddForm();
-  if (name === 'settings')     initSettings();
 }
 
 // ── Data loading ──────────────────────────────────────────────────────────────
@@ -733,25 +688,6 @@ async function submitAdd() {
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Transaction';
-  }
-}
-
-// ── Settings ──────────────────────────────────────────────────────────────────
-function initSettings() {
-  $('s-url').value = CONFIG.SCRIPT_URL;
-}
-
-function saveSettings() {
-  const url = $('s-url').value.trim();
-  if (url && !url.startsWith('https://script.google.com')) {
-    return showToast('⚠️', 'URL must start with script.google.com', 'error');
-  }
-  CONFIG.SCRIPT_URL = url;
-  localStorage.setItem(CFG_KEY, url);
-  showToast('✅', 'Settings saved!', 'success');
-  if (url) {
-    txs = [];
-    loadTxs(true).then(() => renderDashboard());
   }
 }
 
