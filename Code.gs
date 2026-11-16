@@ -33,48 +33,38 @@ function respond(obj) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-// ── doGet — read all transactions ────────────────────────────────────────────
+// ── doGet — all operations via GET params (works anonymously, no CORS preflight) ──
 function doGet(e) {
   try {
+    var action = (e.parameter && e.parameter.action) ? e.parameter.action : 'getAll';
     var sheet  = getSheet();
-    var values = sheet.getDataRange().getValues();
-    if (values.length <= 1) return respond({ ok: true, data: [] });
 
-    var rows = values.slice(1).map(function(row) {
-      var obj = {};
-      HEADERS.forEach(function(h, i) { obj[h] = row[i]; });
-      return obj;
-    }).sort(function(a, b) {
-      return new Date(b.createdAt) - new Date(a.createdAt);
-    });
+    if (action === 'getAll') {
+      var values = sheet.getDataRange().getValues();
+      if (values.length <= 1) return respond({ ok: true, data: [] });
+      var rows = values.slice(1).map(function(row) {
+        var obj = {};
+        HEADERS.forEach(function(h, i) { obj[h] = row[i]; });
+        return obj;
+      }).sort(function(a, b) {
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
+      return respond({ ok: true, data: rows });
+    }
 
-    return respond({ ok: true, data: rows });
-  } catch (err) {
-    return respond({ ok: false, error: err.message, data: [] });
-  }
-}
-
-// ── doPost — add or delete a transaction ─────────────────────────────────────
-// Called with no Content-Type header (body is JSON string sent as text/plain)
-// This avoids CORS preflight so it works from a local HTML file.
-function doPost(e) {
-  try {
-    var d = JSON.parse(e.postData.contents);
-
-    if (d.action === 'add') {
-      var sheet = getSheet();
-      var tx = d.data;
+    if (action === 'add') {
+      var tx = JSON.parse(decodeURIComponent(e.parameter.data));
       tx.id        = tx.id        || (Date.now().toString(36) + Math.random().toString(36).slice(2));
       tx.createdAt = tx.createdAt || new Date().toISOString();
       sheet.appendRow(HEADERS.map(function(h) { return tx[h] || ''; }));
       return respond({ ok: true, data: tx });
     }
 
-    if (d.action === 'delete') {
-      var sheet  = getSheet();
+    if (action === 'delete') {
+      var id     = e.parameter.id;
       var values = sheet.getDataRange().getValues();
       for (var i = 1; i < values.length; i++) {
-        if (String(values[i][0]) === String(d.id)) {
+        if (String(values[i][0]) === String(id)) {
           sheet.deleteRow(i + 1);
           return respond({ ok: true });
         }
@@ -82,8 +72,8 @@ function doPost(e) {
       return respond({ ok: false, error: 'Row not found' });
     }
 
-    return respond({ ok: false, error: 'Unknown action: ' + d.action });
+    return respond({ ok: false, error: 'Unknown action: ' + action });
   } catch (err) {
-    return respond({ ok: false, error: err.message });
+    return respond({ ok: false, error: err.message, data: [] });
   }
 }

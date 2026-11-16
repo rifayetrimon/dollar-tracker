@@ -615,7 +615,7 @@ async function confirmDel(id) {
 async function deleteTx(id) {
   if (!CONFIG.SCRIPT_URL) return;
   try {
-    const r = await scriptPost({ action: 'delete', id: id });
+    const r = await scriptGet({ action: 'delete', id: id });
     if (r.ok) {
       txs = txs.filter(t => String(t.id) !== String(id));
       showToast('🗑️', 'Transaction deleted', 'success');
@@ -675,7 +675,7 @@ async function submitAdd() {
   btn.textContent = 'Saving…';
 
   try {
-    const r = await scriptPost({ action: 'add', data: tx });
+    const r = await scriptGet({ action: 'add', data: JSON.stringify(tx) });
     if (r.ok) {
       txs.unshift(norm(r.data || tx));
       showToast('✅', 'Transaction saved!', 'success');

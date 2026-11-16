@@ -77,7 +77,8 @@ async function runImport() {
     };
 
     try {
-      const res = await fetch(URL, { method: 'POST', body: JSON.stringify({ action: 'add', data: tx }) });
+      const qs  = new URLSearchParams({ action: 'add', data: JSON.stringify(tx), t: Date.now() }).toString();
+      const res = await fetch(URL + '?' + qs);
       const r   = await res.json();
       if (r.ok) {
         badge.className = 'badge ok'; badge.textContent = '✓ Saved'; ok++;
