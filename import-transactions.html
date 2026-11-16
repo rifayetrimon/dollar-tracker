@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Import Transactions</title>
+<style>
+body { font-family: system-ui, sans-serif; background: #0f172a; color: #f1f5f9; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+.box { background: #1e293b; border: 1px solid #334155; border-radius: 14px; padding: 32px; max-width: 540px; width: 100%; }
+h2 { margin: 0 0 6px; font-size: 20px; }
+p  { color: #94a3b8; font-size: 13px; margin: 0 0 24px; }
+.row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #263348; font-size: 14px; }
+.row:last-of-type { border: none; }
+.row-label { flex: 1; }
+.row-amt   { color: #22c55e; font-weight: 600; }
+.badge { font-size: 12px; padding: 3px 10px; border-radius: 6px; font-weight: 600; }
+.pending  { background: #263348; color: #94a3b8; }
+.saving   { background: rgba(59,130,246,.15); color: #3b82f6; }
+.ok       { background: rgba(34,197,94,.12); color: #22c55e; }
+.err      { background: rgba(239,68,68,.12); color: #ef4444; }
+button { margin-top: 24px; width: 100%; padding: 12px; background: #3b82f6; color: #fff; border: none; border-radius: 9px; font-size: 15px; font-weight: 600; cursor: pointer; }
+button:disabled { opacity: .5; cursor: not-allowed; }
+#summary { margin-top: 16px; font-size: 13px; color: #94a3b8; text-align: center; }
+</style>
+</head>
+<body>
+<div class="box">
+  <h2>Import 7 Transactions</h2>
+  <p>Click the button below — this page will add all transactions to your Google Sheet.</p>
+
+  <div id="list"></div>
+
+  <button id="btn" onclick="runImport()">Add All 7 Transactions →</button>
+  <div id="summary"></div>
+</div>
+
+<script>
+const URL = 'https://script.google.com/macros/s/AKfycby3wbdM2rUGBTfyDdF5DNLE-jrCX27yFWiSsoD2NkDvfY63zbbK9G-TAfxCbdO_ePqa/exec';
+
+const TXS = [
+  { date:'2026-11-16', time:'15:23:30', bankAmount:45000,  dollarAmount:345.42, exchangeRate:130.25, note:'DubaiLife'      },
+  { date:'2026-11-16', time:'15:14:26', bankAmount:15000,  dollarAmount:114.70, exchangeRate:130.70, note:'ONLY__'         },
+  { date:'2026-11-15', time:'01:38:24', bankAmount:51000,  dollarAmount:393.03, exchangeRate:129.74, note:'S_A_TRADE_CORPO'},
+  { date:'2026-11-15', time:'01:13:15', bankAmount:39724,  dollarAmount:306.22, exchangeRate:129.70, note:'Rose_Dawson'    },
+  { date:'2026-11-12', time:'16:10:47', bankAmount:3450,   dollarAmount:26.65,  exchangeRate:129.14, note:'YouZarSif-Amin' },
+  { date:'2026-11-12', time:'15:44:44', bankAmount:9403,   dollarAmount:72.76,  exchangeRate:129.14, note:'YouZarSif-Amin' },
+  { date:'2026-11-11', time:'21:13:35', bankAmount:764,    dollarAmount:5.89,   exchangeRate:128.50, note:'BURHANOX'       },
+];
+
+// Render list
+const list = document.getElementById('list');
+TXS.forEach((tx, i) => {
+  list.innerHTML += `<div class="row" id="row${i}">
+    <div class="row-label">
+      <strong>$${tx.dollarAmount}</strong> &nbsp;·&nbsp; ${tx.date} ${tx.time}<br>
+      <span style="color:#94a3b8;font-size:12px">${tx.note} &nbsp;·&nbsp; ৳${tx.exchangeRate}/$ </span>
+    </div>
+    <div class="row-amt">৳${tx.bankAmount.toLocaleString()}</div>
+    <span class="badge pending" id="badge${i}">Pending</span>
+  </div>`;
+});
+
+async function runImport() {
+  const btn = document.getElementById('btn');
+  btn.disabled = true;
+  btn.textContent = 'Importing…';
+  let ok = 0, fail = 0;
+
+  for (let i = 0; i < TXS.length; i++) {
+    const badge = document.getElementById('badge' + i);
+    badge.className = 'badge saving';
+    badge.textContent = 'Saving…';
+
+    const tx = {
+      ...TXS[i],
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+      createdAt: new Date(TXS[i].date + 'T' + TXS[i].time).toISOString()
+    };
+
+    try {
+      const res = await fetch(URL, { method: 'POST', body: JSON.stringify({ action: 'add', data: tx }) });
+      const r   = await res.json();
+      if (r.ok) {
+        badge.className = 'badge ok'; badge.textContent = '✓ Saved'; ok++;
+      } else {
+        badge.className = 'badge err'; badge.textContent = '✗ ' + (r.error || 'Error'); fail++;
+      }
+    } catch (e) {
+      badge.className = 'badge err'; badge.textContent = '✗ Failed'; fail++;
+    }
+
+    await new Promise(r => setTimeout(r, 800));
+  }
+
+  btn.textContent = 'Done';
+  document.getElementById('summary').textContent =
+    ok + ' saved successfully' + (fail ? ', ' + fail + ' failed.' : '.');
+}
+</script>
+</body>
+</html>
