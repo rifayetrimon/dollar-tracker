@@ -43,7 +43,7 @@ function doGet(e) {
       var values = sheet.getDataRange().getValues();
       if (values.length <= 1) return respond({ ok: true, data: [] });
       var tz      = Session.getScriptTimeZone();
-      var headers = values[0]; // read headers from actual sheet row 1
+      var headers = values[0].map(function(h) { return String(h).trim(); });
       var rows = values.slice(1).map(function(row) {
         var obj = {};
         headers.forEach(function(h, i) {
