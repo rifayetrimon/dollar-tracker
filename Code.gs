@@ -70,7 +70,7 @@ function doGet(e) {
     }
 
     if (action === 'add') {
-      var tx = JSON.parse(decodeURIComponent(e.parameter.data));
+      var tx = JSON.parse(e.parameter.data);
       tx.id        = tx.id        || (Date.now().toString(36) + Math.random().toString(36).slice(2));
       tx.createdAt = tx.createdAt || new Date().toISOString();
       sheet.appendRow(HEADERS.map(function(h) { return tx[h] || ''; }));

@@ -718,6 +718,7 @@ async function submitAdd() {
     if (r.ok) {
       txs.unshift(norm(r.data || tx));
       showToast('✅', 'Transaction saved!', 'success');
+      await loadTxs(true);
       showPage('dashboard');
     } else {
       showToast('⚠️', r.error || 'Save failed', 'error');
