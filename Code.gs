@@ -42,16 +42,19 @@ function doGet(e) {
     if (action === 'getAll') {
       var values = sheet.getDataRange().getValues();
       if (values.length <= 1) return respond({ ok: true, data: [] });
-      var tz = Session.getScriptTimeZone();
+      var tz      = Session.getScriptTimeZone();
+      var headers = values[0]; // read headers from actual sheet row 1
       var rows = values.slice(1).map(function(row) {
         var obj = {};
-        HEADERS.forEach(function(h, i) {
+        headers.forEach(function(h, i) {
           var v = row[i];
           if (v instanceof Date) {
-            // date column → YYYY-MM-DD, everything else → ISO string
-            obj[h] = (h === 'date')
-              ? Utilities.formatDate(v, tz, 'yyyy-MM-dd')
-              : v.toISOString();
+            if (h === 'date')
+              obj[h] = Utilities.formatDate(v, tz, 'yyyy-MM-dd');
+            else if (h === 'time')
+              obj[h] = Utilities.formatDate(v, tz, 'HH:mm:ss');
+            else
+              obj[h] = Utilities.formatDate(v, tz, "yyyy-MM-dd'T'HH:mm:ss'Z'");
           } else {
             obj[h] = (v === null || v === undefined) ? '' : v;
           }
